@@ -59,10 +59,10 @@ export class Business {
   @Column('text', { array: true, default: [] })
   services: string[];
 
-  @Column()
+  @Column({ nullable: true })
   category: string;
 
-  @Column()
+ @Column({ nullable: true })
   location: string;
 
   @OneToOne(() => BookingPolicies, (policies) => policies.business, {
@@ -87,7 +87,7 @@ export class Business {
     type: 'enum',
     enum: BusinessStatus,
     default: BusinessStatus.PENDING,
-  })
+  })   
   status: BusinessStatus;
 
   // 🧩 New fields for frontend dashboard
