@@ -10,6 +10,8 @@ import { TransactionFeeModule } from './admin/transaction-fee/transaction-fee.mo
 import { WithdrawalModule } from './admin/withdrawal/withdrawal.module';
 import { WalletModule } from './admin/wallet/wallet.module';
 import { ModerationModule } from './admin/moderation/moderation.module';
+import { SupportModule } from './admin/support/support.module';
+import { PlatformSettingsModule } from './admin/platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { ModerationModule } from './admin/moderation/moderation.module';
     WithdrawalModule,
     WalletModule,
     ModerationModule,
+    SupportModule,
+    PlatformSettingsModule,
   ],
   controllers: [],
 })
