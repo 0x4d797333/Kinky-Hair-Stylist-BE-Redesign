@@ -4,13 +4,32 @@ import { Repository } from 'typeorm';
 import { GiftCard, GiftCardStatus } from './entities/giftcard.entity';
 import { CreateGiftCardDto } from './dto/create-giftcard.dto';
 import { randomBytes } from 'crypto';
+import { LessThan } from 'typeorm';
 
 @Injectable()
 export class GiftcardService {
   constructor(
     @InjectRepository(GiftCard)
     private readonly giftCardRepo: Repository<GiftCard>,
-  ) {}
+  ) {} 
+
+  private async autoExpireCards() {
+    const today = new Date().toISOString().split('T')[0];
+    const expiredCards = await this.giftCardRepo.find({
+      where: {
+        expiryDate: LessThan(today),
+        status: GiftCardStatus.ACTIVE,
+      },
+    });
+
+    if (expiredCards.length === 0) return;
+    for (const card of expiredCards) {
+      card.status = GiftCardStatus.EXPIRED;
+    }
+    await this.giftCardRepo.save(expiredCards);
+    console.log(`✅ Auto-expired ${expiredCards.length} gift card(s)`);
+  }
+
 
   // Generate a human-readable, unique code
   private async generateGiftCardCode(): Promise<string> {
@@ -133,4 +152,27 @@ export class GiftcardService {
       result,
     };
   }
+
+  async getTotalValue() {
+  await this.autoExpireCards();
+  const cards = await this.giftCardRepo.find();
+  const totalValue = cards.reduce((sum, c) => sum + Number(c.originalValue || 0), 0);
+  return { message: 'Total value of all issued gift cards retrieved successfully.', totalCards: cards.length, totalValue };
+}
+
+async getActiveCards() {
+  await this.autoExpireCards();
+  const activeCards = await this.giftCardRepo.find({ where: { status: GiftCardStatus.ACTIVE } });
+  const totalActiveValue = activeCards.reduce((sum, c) => sum + Number(c.currentBalance || 0), 0);
+  return { message: 'Active gift cards retrieved successfully.', totalActiveCards: activeCards.length, totalActiveValue, data: activeCards };
+}
+
+
+async getExpiredCards() {
+  await this.autoExpireCards();
+  const expiredCards = await this.giftCardRepo.find({ where: { status: GiftCardStatus.EXPIRED } });
+  const totalExpiredValue = expiredCards.reduce((sum, c) => sum + Number(c.originalValue || 0), 0);
+  return { message: 'Expired gift cards retrieved successfully.', totalExpiredCards: expiredCards.length, totalExpiredValue, data: expiredCards };
+}
+
 }

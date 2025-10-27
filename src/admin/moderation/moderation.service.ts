@@ -64,9 +64,9 @@ async createReport(data: Partial<FlaggedContent>): Promise<FlaggedContent> {
     if (!settings) {
       settings = this.settingsRepo.create({
         bannedWords: ['inappropriate', 'scam', 'fake', 'terrible'],
-        autoFlagReviews: true,
-        notifyAdmin: true,
-        reviewFlagThreshold: 3,
+        Reviews:true,
+        UserProfile:true,
+        images: false,
       });
       await this.settingsRepo.save(settings);
     }

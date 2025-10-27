@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import { Payment } from '../payment/entities/payment.entity';
 import { Withdrawal } from '../withdrawal/entities/withdrawal.entity';
 import { GiftCard } from '../giftcard/entities/giftcard.entity';
+import { Between } from 'typeorm';
+import moment from 'moment';
+
 
 @Injectable()
 export class WalletService {
@@ -80,4 +83,113 @@ export class WalletService {
 
     return [...paymentTx, ...withdrawalTx, ...giftCardTx];
   }
+// 1️⃣ TOTAL WALLET BALANCE
+  async getTotalWalletBalance() {
+  // Get data from all sources
+  const [payments, withdrawals, giftcards] = await Promise.all([
+    this.paymentRepo.find(),
+    this.withdrawalRepo.find(),
+    this.giftCardRepo.find(),
+  
+  ]);
+
+  // Sum amounts (assuming each model has an `amount` field)
+  const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalWithdrawals = withdrawals.reduce((sum, w) => sum + Number(w.amount || 0), 0);
+  const totalGiftcards = giftcards.reduce((sum, g) => sum + Number(g.currentBalance|| g.originalValue || 0), 0);
+ 
+
+  // Total system-wide balance
+  const totalBalance = totalPayments + totalGiftcards - totalWithdrawals;
+
+  // Daily comparison
+  const startOfYesterday = moment().subtract(1, 'day').startOf('day').toDate();
+  const endOfYesterday = moment().subtract(1, 'day').endOf('day').toDate();
+
+  const [yesterdayPayments, yesterdayWithdrawals, yesterdayGiftcards] =
+    await Promise.all([
+      this.paymentRepo.find({ where: { createdAt: Between(startOfYesterday, endOfYesterday) } }),
+      this.withdrawalRepo.find({ where: { createdAt: Between(startOfYesterday, endOfYesterday) } }),
+      this.giftCardRepo.find({ where: { createdAt: Between(startOfYesterday, endOfYesterday) } }),
+      
+    ]);
+
+  const yesterdayBalance =
+    yesterdayPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0) +
+    yesterdayGiftcards.reduce((sum, g) => sum + Number(g.currentBalance || g.originalValue || 0), 0) +
+    yesterdayWithdrawals.reduce((sum, w) => sum + Number(w.amount || 0), 0);
+
+  const percentChange =
+    yesterdayBalance > 0
+      ? ((totalBalance - yesterdayBalance) / yesterdayBalance) * 100
+      : 0;
+
+  return {
+    totalBalance,
+    percentChange: percentChange.toFixed(2) + '%',
+   
+  };
+}
+
+  // 2️⃣ PENDING WITHDRAWALS
+  async getPendingWithdrawals() {
+    const pending = await this.withdrawalRepo.find({ where: { status: 'Pending' } });
+    const totalPendingAmount = pending.reduce((sum, w) => sum + Number(w.amount || 0), 0);
+    const totalRequests = pending.length;
+
+    return {
+      totalPendingAmount,
+      totalRequests,
+    };
+  }
+
+  // 3️⃣ TODAY’S EARNINGS
+  async getTodaysEarnings() {
+    const todayStart = moment().startOf('day').toDate();
+    const todayEnd = moment().endOf('day').toDate();
+    const yesterdayStart = moment().subtract(1, 'day').startOf('day').toDate();
+    const yesterdayEnd = moment().subtract(1, 'day').endOf('day').toDate();
+
+    const todayPayments = await this.paymentRepo.find({
+      where: { createdAt: Between(todayStart, todayEnd) },
+    });
+    const yesterdayPayments = await this.paymentRepo.find({
+      where: { createdAt: Between(yesterdayStart, yesterdayEnd) },
+    });
+
+    const todayTotal = todayPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const yesterdayTotal = yesterdayPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+    const percentChange =
+      yesterdayTotal > 0 ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100 : 0;
+
+    return {
+      todayTotal,
+      percentChange: percentChange.toFixed(2) + '%',
+    };
+  }
+
+  // 4️⃣ PLATFORM FEES
+  async getPlatformFees() {
+    const paymentsWithFees = await this.paymentRepo
+  .createQueryBuilder('payment')
+  .where('payment.fee > 0')
+  .getMany();
+
+
+    const totalFeeAmount = paymentsWithFees.reduce(
+      (sum, p) => sum + Number(p.amount || 0),
+      0,
+    );
+    const avgFeeRate =
+      paymentsWithFees.length > 0
+        ? totalFeeAmount / paymentsWithFees.length
+        : 0;
+
+    return {
+      totalFeeAmount,
+      avgFeeRate: avgFeeRate.toFixed(2),
+    };
+  }
+
 }

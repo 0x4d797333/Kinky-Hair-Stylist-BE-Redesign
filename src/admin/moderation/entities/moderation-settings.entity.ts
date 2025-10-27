@@ -8,12 +8,16 @@ export class ModerationSettings {
   @Column('simple-array')
   bannedWords: string[];
 
-  @Column({ default: false })
-  autoFlagReviews: boolean;
+  @Column({ default:true })
+  Reviews: boolean;
 
-  @Column({ default: true })
-  notifyAdmin: boolean;
+  @Column({ default:true })
+  UserProfile: boolean;
 
-  @Column({ nullable: true })
-  reviewFlagThreshold: number;
+ @Column({ type: 'boolean', default: false })
+  businessProfile:  boolean;
+
+@Column({ type: 'boolean', default: false })
+images: boolean;
+
 }

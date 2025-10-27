@@ -40,5 +40,22 @@ export class GiftcardController {
 async deleteAll() {
   return this.giftcardService.deleteAllGiftCards();
 }
+@Get('stats/total-value')
+getTotalValue() {
+  return this.giftcardService.getTotalValue();
+}
+
+@Get('stats/active')
+getActiveCards() {
+  return this.giftcardService.getActiveCards();
+}
+
+
+
+@Get('stats/expired')
+getExpiredCards() {
+  return this.giftcardService.getExpiredCards();
+}
+
 
 }
