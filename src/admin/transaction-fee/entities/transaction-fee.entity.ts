@@ -52,4 +52,8 @@ export class TransactionFeeConfig {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  
+  @CreateDateColumn()
+  updatedAt: Date;
 }

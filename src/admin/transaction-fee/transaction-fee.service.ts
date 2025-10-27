@@ -14,7 +14,10 @@ export class TransactionFeeService {
   // Get the current transaction fee configuration
   async getCurrentConfig(): Promise<{ message: string; data: TransactionFeeConfig }> {
     // Try to find the most recent configuration
-    let config = await this.feeRepo.findOne({ where: {} });
+    let config = await this.feeRepo.findOne({
+    order: { updatedAt: 'DESC' }, // Ensures we always get the latest config
+    where: {},
+  });
 
     // If no config exists yet, create a default one
     if (!config) {
